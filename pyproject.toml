@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nodus-sdk"
+version = "0.1.0"
+description = "Unified platform SDK for Nodus — factory, bridges, and integration layer"
+authors = [{ name = "Shawn Knight" }]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "nodus-lang>=4.1.0",
+    "nodus-schema>=0.1.0",
+    "nodus-protocol>=0.1.0",
+    "nodus-retry>=0.1.0",
+]
+
+[project.optional-dependencies]
+agent        = ["nodus-agent>=0.1.0", "nodus-state>=0.1.0", "nodus-circuit-breaker>=0.1.0"]
+workflow     = ["nodus-workflow>=0.1.0", "nodus-state>=0.1.0", "nodus-events>=0.1.0"]
+memory       = ["nodus-memory>=0.1.0"]
+memory-ai    = ["nodus-memory[openai]>=0.1.0"]
+auth         = ["nodus-auth>=0.1.0"]
+llm          = ["nodus-llm>=0.1.0", "nodus-circuit-breaker>=0.1.0"]
+http         = ["nodus-http>=0.1.0"]
+redis        = ["nodus-queue[redis]>=0.1.0", "nodus-events[redis]>=0.1.0"]
+sql          = ["sqlalchemy>=2.0"]
+vector       = ["pgvector>=0.2", "sqlalchemy>=2.0"]
+scheduler    = ["apscheduler>=3.10"]
+fastapi      = ["fastapi>=0.100", "httpx>=0.27"]
+webhooks     = ["httpx>=0.27"]
+observability = ["nodus-observability>=0.1.0", "nodus-observability-framework>=0.1.0"]
+extensions   = ["nodus-extension>=0.1.0"]
+full = [
+    "nodus-sdk[agent,workflow,memory,auth,llm,http,redis,sql,vector,scheduler,fastapi,webhooks,observability,extensions]"
+]
+dev = [
+    "pytest>=7",
+    "pytest-asyncio",
+    "respx",
+    "fastapi[all]",
+    "sqlalchemy>=2.0",
+    "apscheduler>=3.10",
+    "httpx>=0.27",
+]
+
+[project.urls]
+Homepage = "https://github.com/Masterplanner25/nodus-sdk"
+Repository = "https://github.com/Masterplanner25/nodus-sdk"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nodus_sdk*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
