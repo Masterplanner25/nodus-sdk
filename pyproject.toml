@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "nodus-lang>=4.1.0",
+    "nodus-lang>=4.0.0",
     "nodus-schema>=0.1.0",
     "nodus-protocol>=0.1.0",
     "nodus-retry>=0.1.0",
