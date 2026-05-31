@@ -5,5 +5,8 @@ dist/
 build/
 .venv/
 .pytest_cache/
+.ruff_cache/
 *.pyc
+.coverage
+htmlcov/
 .nodus/
