@@ -1,0 +1,60 @@
+# nodus-sdk
+
+> Unified SDK for the Nodus ecosystem — single install, all bridges wired automatically.
+> Part of the [Masterplan Infinite Weave](https://www.the-master-plan.com/) ecosystem.
+> Created by Shawn Knight.
+
+nodus-sdk auto-wires the 27-package Nodus ecosystem. Instead of manually installing and
+configuring nodus-lang + nodus-http + nodus-observability + nodus-sql + ..., a single
+`pip install nodus-sdk[agent,sql,fastapi]` installs and wires everything.
+
+## Status
+
+v0.1.0 — prepared, not yet published. 99 tests passing.
+
+## Install
+
+```
+pip install nodus-sdk                    # core + nodus-lang
+pip install nodus-sdk[agent]             # + agent coordination
+pip install nodus-sdk[sql]               # + SQL persistence
+pip install nodus-sdk[fastapi]           # + FastAPI bridge
+pip install nodus-sdk[agent,sql,fastapi] # everything
+```
+
+## Usage
+
+```python
+from nodus_sdk import create_runtime
+
+rt = create_runtime(
+    http=True,
+    llm=True,
+    sql="sqlite:///db.sqlite3",
+)
+result = rt.run_source(source)
+```
+
+## Key Exports
+
+- `NodusSDKRuntime` — extended NodusRuntime with all bridges auto-wired
+- `create_runtime(**kwargs)` — factory that selects and wires bridges based on kwargs
+- `detect_available()` — returns which optional packages are installed
+- 9 bridges: redis, http, llm, observability, sql, vector, scheduler, webhook, api
+
+## Important Note
+
+Bridge host functions return **maps** (dicts), not Records. Nodus scripts must use
+`r["key"]` not `r.key` when accessing bridge results.
+
+## Ecosystem
+
+- nodus-lang: https://github.com/Masterplanner25/Nodus (required dep)
+- All packages: https://github.com/Masterplanner25
+- Masterplan Infinite Weave: https://www.the-master-plan.com/
+
+## Creator
+
+Shawn Knight — [Masterplan Infinite Weave](https://www.the-master-plan.com/)
+- [AI Search Optimization](https://medium.com/masterplan-infinite-weave/2025-chatgpt-case-study-ai-search-optimization-0f8cd5e78d4f) — discoverability philosophy
+- [Why I'm Building A.I.N.D.Y.](https://medium.com/masterplan-infinite-weave/2025-chatgpt-ai-the-duality-of-progress-why-im-building-a-i-n-d-y-or-any-tool-really-a138f7860fba) — strategic context

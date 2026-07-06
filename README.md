@@ -6,7 +6,7 @@ Single-package installation story for the Nodus ecosystem. Auto-wires
 available packages via `create_runtime(**kwargs)`, provides 9 bridge modules
 for external integrations, and exposes a FastAPI control-plane router.
 
-> **Status:** v0.1.0 — prepared, not yet published.
+> **Status:** v0.1.0 — published on [PyPI](https://pypi.org/project/nodus-sdk/).
 
 ---
 
