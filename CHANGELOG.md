@@ -9,6 +9,16 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.1] — 2026-07-12
+
+### Changed
+
+- **Capped the `nodus-lang` dependency at `<5.0.0`** (was unbounded `>=4.0.0`).
+  Guards against `pip` resolving a future `nodus-lang` 5.x that could break the
+  SDK's bridge wiring; the published 0.1.0 lacked the upper bound. No API change.
+
+---
+
 ## [0.1.0] — 2026-05-31
 
 Initial release.
