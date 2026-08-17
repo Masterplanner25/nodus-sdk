@@ -9,6 +9,30 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.2] — 2026-08-17
+
+### Changed
+
+- **Floated the `nodus-lang` dependency to `>=4.0.0`**, reversing the `<5.0.0`
+  cap added in 0.1.1. That cap was added to guard against "a future nodus-lang
+  5.x that could break the SDK's bridge wiring." 5.0.0 shipped on 2026-08-17 and
+  broke nothing here — the full suite passes against it unchanged — but the cap
+  made the package uninstallable alongside it (`ResolutionImpossible`), which is
+  the more expensive failure of the two, and one that no test could have caught.
+
+  A hard upper bound on a first-party dependency turns every nodus-lang major
+  into a two-repo release train with consumers frozen in between. This package's
+  own suite is the check that catches a real break; a cap earns its place once a
+  break is known.
+
+### Fixed
+
+- **`test_version_string` asserted `0.1.0`** while the package had been `0.1.1`
+  since 2026-07-12, so the suite shipped one guaranteed failure. Now asserts the
+  current version.
+
+---
+
 ## [0.1.1] — 2026-07-12
 
 ### Changed
