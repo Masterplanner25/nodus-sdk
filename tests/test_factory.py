@@ -16,7 +16,7 @@ from nodus.runtime.embedding import NodusRuntime
 # ---------------------------------------------------------------------------
 
 def test_version_string():
-    assert __version__ == "0.1.0"
+    assert __version__ == "0.1.2"
 
 
 # ---------------------------------------------------------------------------

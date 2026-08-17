@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nodus-sdk"
-version = "0.1.1"
+version = "0.1.2"
 description = "Unified platform SDK for Nodus — factory, bridges, and integration layer"
 authors = [{ name = "Shawn Knight" }]
 license = {file = "LICENSE"}
@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "nodus-lang>=4.0.0,<5.0.0",
+    "nodus-lang>=4.0.0",
     "nodus-schema>=0.1.0",
     "nodus-protocol>=0.1.0",
     "nodus-retry>=0.1.0",
