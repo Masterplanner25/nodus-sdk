@@ -36,20 +36,42 @@ class NodusSDKRuntime(NodusRuntime):
     # ------------------------------------------------------------------
 
     def attach_memory(self, store: Any = None) -> "NodusSDKRuntime":
+        """Install *store* as this runtime's ``std:memory`` store (#7).
+
+        The store a guest's ``memory_put`` / ``memory_get`` reach is the
+        runtime's own, isolated per runtime since nodus-lang 5.0.3 and handed
+        to every VM as ``vm.memory_store``. This used to set a name nothing
+        read (``_memory_store_ref``), so an attached store stayed empty while
+        the guest wrote elsewhere -- and ``memory=True`` built a
+        ``nodus_memory`` *node* store, a different product that shares a word.
+
+        *store* must be a nodus-lang ``MemoryStore`` (``get``/``put``/
+        ``delete``/``keys``/``items``); the runtime falls back to the
+        process-global store for anything else, silently, so anything else is
+        refused here. ``None`` keeps the runtime's own store, which is already
+        isolated: there is nothing to build.
+        """
         if "memory" in self._attached:
             return self
         if store is not None:
-            self._memory_store_ref = store
-            self._attached.add("memory")
-        elif _available("nodus_memory"):
-            from nodus_memory import InMemoryStore
-            self._memory_store_ref = InMemoryStore()
-            self._attached.add("memory")
+            from nodus.services.memory_runtime import MemoryStore
+
+            if not isinstance(store, MemoryStore):
+                raise TypeError(
+                    "attach_memory() takes a nodus.services.memory_runtime.MemoryStore "
+                    f"(the std:memory key-value store), got {type(store).__name__}. "
+                    "A nodus_memory node store is a different product; it is not what "
+                    "memory_get/memory_put read."
+                )
+            self._memory_store = store
+        self._attached.add("memory")
         return self
 
     @property
     def memory_store(self) -> Any:
-        return getattr(self, "_memory_store_ref", None)
+        """The store this runtime's guests read and write -- the same object
+        ``std:memory`` and the API router's ``/memory/{key}`` use."""
+        return self._memory_store
 
     # ------------------------------------------------------------------
     # Extension bridge (nodus-extension)

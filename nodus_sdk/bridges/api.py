@@ -74,22 +74,30 @@ def create_nodus_router(
                 return []
 
     if include_memory:
+        # The runtime's own store, the one its guests read (#7). Called with no
+        # `vm`, these resolved to the process-global store, which no guest of
+        # an isolated runtime has seen since nodus-lang 5.0.3.
+        from types import SimpleNamespace
+
+        def _store_view() -> Any:
+            return SimpleNamespace(memory_store=runtime.memory_store, event_bus=None)
+
         @router.get("/memory/{key}")
         def memory_get(key: str) -> dict:
             from nodus.services.memory_runtime import get_value
-            value = get_value(key)
+            value = get_value(key, vm=_store_view())
             return {"key": key, "value": value}
 
         @router.post("/memory/{key}")
         def memory_set(key: str, req: _MemoryWriteRequest) -> dict:
             from nodus.services.memory_runtime import put_value
-            stored = put_value(key, req.value)
+            stored = put_value(key, req.value, vm=_store_view())
             return {"key": key, "value": stored}
 
         @router.delete("/memory/{key}")
         def memory_delete(key: str) -> dict:
             from nodus.services.memory_runtime import delete_value
-            found = delete_value(key)
+            found = delete_value(key, vm=_store_view())
             return {"key": key, "found": found}
 
     return router

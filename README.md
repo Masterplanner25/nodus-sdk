@@ -37,7 +37,7 @@ result = rt.run_source('print("hello from sdk")')
 from nodus_sdk import create_runtime, NodusSDKRuntime
 
 rt = create_runtime(
-    memory=True,          # True = auto-configure; or pass a store object
+    memory=True,          # the runtime's own std:memory store; or pass a MemoryStore
     events=True,          # True = auto-configure; or pass EventBusConfig
     extensions=True,      # attach ExtensionRegistry
     auth=True,            # attach KeyRing
@@ -45,10 +45,17 @@ rt = create_runtime(
     trace_id="tid-001",   # injected into every emitted event
     timeout_ms=None,      # None = unlimited (required for long-lived services)
     max_steps=None,
-    allowed_paths=None,
+    # Confinement matches a bare NodusRuntime: the filesystem is jailed to the
+    # working directory unless allowed_paths is given (None = no jail), and
+    # subprocess / network / env are denied unless granted:
+    allowed_paths=["/data"],
+    allow_network=True,
     project_root=None,
 )
 ```
+
+`rt.memory_store` is the store the guest's `memory_get` / `memory_put` read and
+write — the same object `create_nodus_router(rt)`'s `/memory/{key}` routes use.
 
 `create_runtime` returns a `NodusSDKRuntime` — a `NodusRuntime` subclass with
 fluent `attach_*` bridge methods. All capability kwargs accept `True` (default
@@ -84,7 +91,7 @@ All `attach_*` methods are idempotent and return `self`.
 | `bridges/observability.py` | `[observability]` | `init_observability(name, otel=, prometheus=)` |
 | `bridges/sql.py` | `[sql]` | `SqlBridge(url)` → sql_query/sql_execute host fns |
 | `bridges/vector.py` | `[vector]` | `VectorBridge(url, table, dimensions)` → vector_search/upsert/delete |
-| `bridges/scheduler.py` | `[scheduler]` | `SchedulerBridge()` → scheduler_add_interval/cron/cancel |
+| `bridges/scheduler.py` | `[scheduler]` | `SchedulerBridge().register_job(name, fn)` → `.nd` schedules it: `scheduler_add_interval(id, secs, name)` / `scheduler_add_cron(id, expr, name)` / cancel |
 | `bridges/webhook.py` | `[webhooks]` | `WebhookBridge(secret=)` → webhook_send |
 | `bridges/api.py` | `[fastapi]` | `create_nodus_router(rt)` + `NodusTraceMiddleware` |
 

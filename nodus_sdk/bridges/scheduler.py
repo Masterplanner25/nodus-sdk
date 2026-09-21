@@ -20,10 +20,17 @@ class SchedulerBridge:
     Usage::
 
         bridge = SchedulerBridge()
+        bridge.register_job("reports.nightly", run_nightly_report)   # host-side callable
         bridge.start()
         rt.attach_scheduler(bridge)
-        # .nd: scheduler_add_interval("my.job", 60)
+        # .nd: scheduler_add_interval("my.job", 60, "reports.nightly")
         # .nd: scheduler_cancel("my.job")
+
+    A ``.nd`` program schedules work by naming a job the host registered with
+    :meth:`register_job` (#5). The callback runs host-side on an APScheduler
+    thread, where re-entering the VM would not be safe; the host decides what
+    a name does. A name nothing registered is refused at scheduling time,
+    not scheduled as a no-op.
     """
 
     def __init__(
@@ -49,6 +56,22 @@ class SchedulerBridge:
             timezone=timezone,
         )
         self._started = False
+        self._jobs: dict[str, Callable[[], Any]] = {}
+
+    def register_job(self, name: str, fn: Callable[[], Any]) -> "SchedulerBridge":
+        """Make *fn* schedulable from ``.nd`` under *name* (#5).
+
+        The only path from a Nodus program to real scheduled work. Before this
+        the ``scheduler_add_*`` builtins scheduled ``lambda: None``: the job id
+        came back, the job listed, ``next_run`` advanced, and nothing ever ran.
+        """
+        if not callable(fn):
+            raise TypeError(f"register_job({name!r}): fn must be callable, got {type(fn).__name__}")
+        self._jobs[name] = fn
+        return self
+
+    def registered_jobs(self) -> list[str]:
+        return sorted(self._jobs)
 
     def start(self) -> None:
         if not self._started:
@@ -122,21 +145,36 @@ class SchedulerBridge:
         """Register scheduler_add_interval, scheduler_add_cron, scheduler_cancel, scheduler_list_jobs."""
         bridge = self
 
-        def scheduler_add_interval(job_id: Any, seconds: Any) -> str:
+        def _resolve(job: Any) -> Callable[[], Any] | str:
+            if not isinstance(job, str):
+                return "error:invalid_job"
+            fn = bridge._jobs.get(job)
+            if fn is None:
+                known = ", ".join(bridge.registered_jobs()) or "none"
+                return f"error:unknown job {job!r}; register it host-side with SchedulerBridge.register_job (registered: {known})"
+            return fn
+
+        def scheduler_add_interval(job_id: Any, seconds: Any, job: Any) -> str:
             if not isinstance(job_id, str):
                 return "error:invalid_job_id"
             secs = int(seconds) if isinstance(seconds, (int, float)) else 60
+            fn = _resolve(job)
+            if isinstance(fn, str):
+                return fn
             try:
-                bridge.add_interval_job(job_id, lambda: None, seconds=secs)
+                bridge.add_interval_job(job_id, fn, seconds=secs)
                 return job_id
             except Exception as exc:
                 return f"error:{exc}"
 
-        def scheduler_add_cron(job_id: Any, cron_expr: Any) -> str:
+        def scheduler_add_cron(job_id: Any, cron_expr: Any, job: Any) -> str:
             if not isinstance(job_id, str) or not isinstance(cron_expr, str):
                 return "error:invalid_args"
+            fn = _resolve(job)
+            if isinstance(fn, str):
+                return fn
             try:
-                bridge.add_cron_job(job_id, lambda: None, cron_expr=cron_expr)
+                bridge.add_cron_job(job_id, fn, cron_expr=cron_expr)
                 return job_id
             except Exception as exc:
                 return f"error:{exc}"
@@ -149,8 +187,8 @@ class SchedulerBridge:
         def scheduler_list_jobs() -> list:
             return bridge.list_jobs()
 
-        runtime.register_function("scheduler_add_interval", scheduler_add_interval, arity=2)
-        runtime.register_function("scheduler_add_cron", scheduler_add_cron, arity=2)
+        runtime.register_function("scheduler_add_interval", scheduler_add_interval, arity=3)
+        runtime.register_function("scheduler_add_cron", scheduler_add_cron, arity=3)
         runtime.register_function("scheduler_cancel", scheduler_cancel, arity=1)
         runtime.register_function("scheduler_list_jobs", scheduler_list_jobs, arity=0)
 
