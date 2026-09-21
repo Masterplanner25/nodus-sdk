@@ -118,10 +118,15 @@ def test_create_runtime_memory_true_when_available():
     assert rt.memory_store is not None
 
 
-def test_create_runtime_memory_false_when_not_installed():
+def test_create_runtime_memory_needs_no_optional_package():
+    # #7: `memory=True` is the runtime's own std:memory store, which every
+    # runtime has. It used to depend on nodus_memory being installed -- and
+    # then built a node store that memory_get could never read.
     with patch("nodus_sdk.runtime._available", return_value=False):
-        rt = create_runtime(memory=True)
-    assert "memory" not in rt.attached_bridges()
+        rt = create_runtime(memory=True, timeout_ms=None)
+    assert "memory" in rt.attached_bridges()
+    rt.run_source('memory_put("k", 1i)')
+    assert rt.memory_store.get("k") == 1
 
 
 def test_create_runtime_extensions_false():
@@ -160,12 +165,14 @@ def test_detect_available_retry_true():
 # attach_memory() when package missing
 # ---------------------------------------------------------------------------
 
-def test_attach_memory_graceful_when_not_installed():
+def test_attach_memory_without_a_store_keeps_the_runtimes_own():
     rt = NodusSDKRuntime(timeout_ms=None)
+    own = rt.memory_store
     with patch("nodus_sdk.runtime._available", return_value=False):
         ret = rt.attach_memory()
     assert ret is rt
-    assert "memory" not in rt.attached_bridges()
+    assert "memory" in rt.attached_bridges()
+    assert rt.memory_store is own
 
 
 # ---------------------------------------------------------------------------

@@ -7,6 +7,53 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] — 2026-09-20
+
+Three bridges reported success and did nothing. Each shipped green because
+nothing in the suite ran a `.nd` program through it; `tests/test_bridges_reach_
+the_guest.py` now drives every one of them from the guest side.
+
+### Fixed
+
+- **`create_runtime()` built a runtime with no filesystem jail** (#6). It passed
+  `allowed_paths=None` explicitly, which `NodusRuntime` reads as *unrestricted*,
+  while a bare `NodusRuntime()` jails to the working directory. Measured: a
+  guest's `fs.write("../escape.txt")` landed. The argument is now omitted unless
+  given — the runtime's own default applies — and an explicit `None` still
+  means no jail, for a caller who says so. `allow_subprocess`, `allow_network`
+  and `allow_env` are new keyword-only flags (default `False`, passed only when
+  granted, so the `nodus-lang>=4.0.0` floor is unchanged).
+- **The memory bridge was disconnected from the store guests use** (#7), three
+  ways. `attach_memory(store)` set `_memory_store_ref`, a name nothing reads,
+  so the attached store stayed empty while the guest wrote to the runtime's
+  own; `create_nodus_router(rt)`'s `/memory/{key}` routes used the
+  **process-global** store, which no guest of an isolated runtime has seen
+  since nodus-lang 5.0.3; and `memory=True` built a `nodus_memory` *node*
+  store — a different product that shares a word with `std:memory`. Now:
+  `attach_memory` installs a nodus-lang `MemoryStore` as the runtime's store
+  (anything else is refused with a `TypeError` naming the mismatch, because the
+  runtime silently falls back to the global store for a non-`MemoryStore`);
+  `memory=True` means the runtime's own already-isolated store and needs no
+  optional package; the router reads and writes that same store; and
+  `rt.memory_store` returns it.
+- **`scheduler_add_interval` / `scheduler_add_cron` scheduled a no-op** (#5).
+  They passed `lambda: None` as the callback: the job id came back, the job
+  listed, `next_run` advanced, and nothing ever ran. A `.nd` program now
+  schedules work by naming a job the host registered with
+  `SchedulerBridge.register_job(name, fn)` — a third argument to both builtins
+  — and the callback runs host-side on the APScheduler thread, where
+  re-entering the VM would not be safe. A name nothing registered is refused
+  at scheduling time (`error:unknown job …`), not scheduled inert.
+
+### Changed
+
+- `scheduler_add_interval(job_id, seconds, job)` and
+  `scheduler_add_cron(job_id, cron_expr, job)` take three arguments (were two).
+  The two-argument form never did anything, so nothing that *worked* breaks.
+- `attach_memory()` with a `nodus_memory` store raises instead of accepting it.
+  It was never wired to anything a guest could reach.
+
+
 ---
 
 ## [0.1.2] — 2026-08-17

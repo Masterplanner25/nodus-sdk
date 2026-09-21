@@ -103,10 +103,14 @@ def test_list_jobs_returns_list(bridge):
 # ---------------------------------------------------------------------------
 
 def test_register_host_functions_scheduler_add_interval(bridge):
+    # #5: a guest names a host-registered job; the two-argument form scheduled
+    # `lambda: None`. What the job does when it fires is covered in
+    # test_bridges_reach_the_guest.py.
+    bridge.register_job("nd.work", lambda: None)
     bridge.start()
     rt = NodusSDKRuntime(timeout_ms=None)
     bridge.register_host_functions(rt)
-    result = rt.run_source('let r = scheduler_add_interval("nd.job", 60i)\nprint(r)')
+    result = rt.run_source('let r = scheduler_add_interval("nd.job", 60i, "nd.work")\nprint(r)')
     assert result.get("ok") is True
     assert "nd.job" in result.get("stdout", "")
 

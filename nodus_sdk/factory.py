@@ -29,6 +29,25 @@ def detect_available() -> dict[str, bool]:
     }
 
 
+class _Unset:
+    """`allowed_paths` was not given (#6).
+
+    `NodusRuntime` reads an explicit ``None`` as *unrestricted* and has its own
+    sentinel for "the caller said nothing" (jail to the working directory).
+    The factory used to default to ``None`` and pass it through, so
+    ``create_runtime()`` built a runtime with no filesystem jail while a bare
+    ``NodusRuntime()`` had one. Unset here means the argument is omitted and
+    the runtime's own default applies; ``None`` is still passed through as the
+    runtime's "unrestricted", for a caller who says so.
+    """
+
+    def __repr__(self) -> str:
+        return "UNSET"
+
+
+_UNSET: Any = _Unset()
+
+
 def create_runtime(
     *,
     memory: bool | Any = False,
@@ -39,9 +58,12 @@ def create_runtime(
     trace_id: str | None = None,
     timeout_ms: int | None = None,
     max_steps: int | None = None,
-    allowed_paths: list[str] | None = None,
+    allowed_paths: list[str] | None = _UNSET,
     project_root: str | None = None,
     allow_input: bool = False,
+    allow_subprocess: bool = False,
+    allow_network: bool = False,
+    allow_env: bool = False,
     max_frames: int | None = None,
 ) -> NodusSDKRuntime:
     """Create a pre-wired NodusSDKRuntime.
@@ -49,19 +71,31 @@ def create_runtime(
     Each capability kwarg accepts either a bool (True = auto-configure with defaults)
     or a config/store object for custom configuration.
 
+    Confinement matches a bare ``NodusRuntime``: the filesystem is jailed to the
+    working directory unless ``allowed_paths`` is given (``None`` = no jail),
+    and subprocess, network and environment access are denied unless the
+    matching ``allow_*`` flag is ``True``.
+
     Example::
 
         rt = create_runtime(memory=True, trace_id="abc-123", timeout_ms=None)
         rt = create_runtime(memory=my_store, auth=my_key_ring, observability="my-service")
+        rt = create_runtime(allow_network=True, allowed_paths=["/data"])
     """
-    rt = NodusSDKRuntime(
+    kwargs: dict[str, Any] = dict(
         timeout_ms=timeout_ms,
         max_steps=max_steps,
-        allowed_paths=allowed_paths,
         project_root=project_root,
         allow_input=allow_input,
         max_frames=max_frames,
     )
+    if allowed_paths is not _UNSET:
+        kwargs["allowed_paths"] = allowed_paths
+    # Passed only when granted, so the runtime's own defaults hold otherwise.
+    for flag, value in (("allow_subprocess", allow_subprocess), ("allow_network", allow_network), ("allow_env", allow_env)):
+        if value:
+            kwargs[flag] = True
+    rt = NodusSDKRuntime(**kwargs)
 
     if trace_id is not None:
         rt.set_trace_id(trace_id)
