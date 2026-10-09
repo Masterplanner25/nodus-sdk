@@ -33,7 +33,9 @@ agent        = ["nodus-agent>=0.1.0", "nodus-state>=0.1.0", "nodus-circuit-break
 workflow     = ["nodus-workflow>=0.1.0", "nodus-state>=0.1.0", "nodus-events>=0.1.0"]
 memory       = ["nodus-memory>=0.1.0"]
 memory-ai    = ["nodus-memory[openai]>=0.1.0"]
-auth         = ["nodus-auth>=0.1.0"]
+# >=0.2.0: 0.1.x signs and verifies through python-jose, which carries
+# CVE-2026-85394 (CRITICAL) with no fixed release. 0.2.0 moved to PyJWT.
+auth         = ["nodus-auth>=0.2.0"]
 llm          = ["nodus-llm>=0.1.0", "nodus-circuit-breaker>=0.1.0"]
 http         = ["nodus-http>=0.1.0"]
 redis        = ["nodus-queue[redis]>=0.1.0", "nodus-events[redis]>=0.1.0"]

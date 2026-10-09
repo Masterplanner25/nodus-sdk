@@ -7,6 +7,20 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Security
+
+- **`auth` extra floor raised to `nodus-auth>=0.2.0`.** 0.1.x signs and verifies
+  through `python-jose`, which carries **CVE-2026-85394 / GHSA-3qf3-8w2g-rqmx
+  (CRITICAL)** with `last_affected: 3.5.0` and **no fixed release** -- 3.5.0
+  being its newest release and its last. nodus-auth 0.2.0 moved the backend to
+  `PyJWT>=2.15.1` and refuses asymmetric key material under an HMAC algorithm.
+
+  The old `>=0.1.0` floor let a resolver or an existing lockfile land on the
+  affected build. Takes effect on the next nodus-sdk release.
+
+  Note that `attach_auth()` cannot currently produce a key ring at all (#9), so
+  nothing in this package exercises either version of that dependency.
+
 ## [0.1.3] — 2026-09-20
 
 Three bridges reported success and did nothing. Each shipped green because
