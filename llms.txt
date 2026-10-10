@@ -10,7 +10,10 @@ configuring nodus-lang + nodus-http + nodus-observability + nodus-sql + ..., a s
 
 ## Status
 
-v0.1.0 — prepared, not yet published. 99 tests passing.
+v0.1.3 — published on PyPI.
+
+No test count here on purpose: it was `99 tests passing` through three
+releases that each added tests. The suite is the count.
 
 ## Install
 

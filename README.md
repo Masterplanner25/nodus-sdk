@@ -40,7 +40,7 @@ rt = create_runtime(
     memory=True,          # the runtime's own std:memory store; or pass a MemoryStore
     events=True,          # True = auto-configure; or pass EventBusConfig
     extensions=True,      # attach ExtensionRegistry
-    auth=True,            # attach KeyRing
+    auth=True,            # KeyRing from $SECRET_KEY; or pass your own ring
     observability=True,   # or pass service name string
     trace_id="tid-001",   # injected into every emitted event
     timeout_ms=None,      # None = unlimited (required for long-lived services)
@@ -60,6 +60,27 @@ write — the same object `create_nodus_router(rt)`'s `/memory/{key}` routes use
 `create_runtime` returns a `NodusSDKRuntime` — a `NodusRuntime` subclass with
 fluent `attach_*` bridge methods. All capability kwargs accept `True` (default
 config) or a config/store object.
+
+### `auth=True` needs a configured `SECRET_KEY`
+
+`auth=True` builds a `nodus_auth.KeyRing` from `AuthSettings().SECRET_KEY`, so
+set that environment variable to a random secret of at least 32 bytes
+(`nodus_auth.generate_key()` makes one). It **raises** rather than falling back,
+because the two obvious fallbacks are both worse than an error:
+
+- a *random* secret per runtime would stop tokens verifying across a restart,
+  across two runtimes in one process, and across the replicas of any real
+  deployment — while passing every single-process test;
+- nodus-auth's *dev default* `SECRET_KEY` is a published constant, so a ring
+  built on it is forgeable by anyone who has read the package.
+
+`auth=my_key_ring` skips all of that and uses the ring you pass. Requires
+`nodus-auth>=0.2.0`; 0.1.x signs through `python-jose`, which carries an
+unfixed critical advisory (CVE-2026-85394).
+
+`rt.auth_key_ring` is the ring, and `rt.event_bus` the bus — both `None` if the
+matching optional package is not installed, in which case the bridge is not
+listed in `rt.attached_bridges()` either.
 
 ---
 

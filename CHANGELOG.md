@@ -7,6 +7,68 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`attach_auth()` and `attach_events()` reported success and attached
+  nothing** (#9). Two instances of one shape, filed as one: each imported a
+  name from a module that does not export it, inside an
+  `except (ImportError, AttributeError): pass` that also happens to be how an
+  absent optional dependency is handled — so a *wrong import* was
+  indistinguishable from a *package nobody installed*, and both failed silently
+  for the life of the package.
+
+  - `attach_auth()` did `from nodus_auth.tokens import KeyRing`. That module
+    has never existed in any release of nodus-auth; the class is in
+    `nodus_auth.jwt`, re-exported from the package root. It then called
+    `KeyRing.generate()`, which is not a classmethod of it either. So
+    `rt.auth_key_ring` was `None` while `"auth" in rt.attached_bridges()`.
+  - `attach_events()` did `from nodus_events.bus import get_event_bus`. The
+    name is exported from `nodus_events`, not from that submodule. Same
+    outcome: `rt.event_bus` was `None`, `"events"` reported attached.
+
+  Only `attach_auth` was filed. `attach_events` was found by running every
+  import these methods make, which is now
+  `test_optional_imports_resolve` — and it reads the `_require(...)` calls out
+  of `runtime.py`'s **AST** rather than restating them, because the first
+  version of that test was a table and a neuter putting the original wrong
+  import back left it green. A table compares the table to reality, not the
+  code to reality.
+
+  `_require()` replaces the swallow: a missing module or attribute behind an
+  installed package is a version mismatch and now says so, loudly, naming the
+  package. `attach_extension()` used the same `except` clause with correct
+  imports, and is routed through it too.
+
+  **`attach_auth()` will not invent a signing key.** With no ring passed it
+  builds one from `AuthSettings().SECRET_KEY` and **raises** if that is
+  nodus-auth's published dev default, naming both ways out. The two tempting
+  fallbacks are worse than an error: a random per-runtime secret stops tokens
+  verifying across a restart, across two runtimes in one process, and across
+  the replicas of any real deployment — while passing every single-process test
+  — and the dev default is a published constant, so a ring built on it is
+  forgeable by anyone who has read the package. Nothing can depend on the old
+  behaviour, which attached `None`.
+
+  **A holder bridge is now recorded as attached only if something was actually
+  attached.** Both methods used to add to `_attached` even when the optional
+  package was absent. The rule is stated once and
+  `test_a_holder_bridge_is_never_recorded_holding_nothing` reads the set, so a
+  third holder bridge added later has to answer it too.
+
+- **`create_runtime(events=EventBusConfig(...))` stored the config as the
+  bus.** README has documented that call since 0.1.0; `rt.event_bus` came back
+  as a config object with no `publish`. `nodus_events.get_event_bus` takes a
+  config, so the documented behaviour was one branch away. An `EventBusConfig`
+  is now built into a bus; any other object is still stored verbatim.
+
+### Changed
+
+- **`attach_extension()` no longer swallows errors from
+  `attach_to_runtime()`.** Its imports were correct, but the same `except
+  (ImportError, AttributeError): pass` wrapped the call itself, so an
+  `AttributeError` raised *inside* nodus-extension was reported as a
+  successful attach.
+
 ### Security
 
 - **`auth` extra floor raised to `nodus-auth>=0.2.0`.** 0.1.x signs and verifies
