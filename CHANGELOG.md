@@ -7,6 +7,21 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] — 2026-10-09
+
+Three bridges, found the way 0.1.3's three were -- by using the bridge rather
+than reading it. Two attached nothing and reported success; the third, `[http]`,
+had never worked outside a development checkout. Only one of the three had been
+filed.
+
+**One call changes behaviour**: `create_runtime(auth=True)` / `attach_auth()`
+with no ring now raises unless `SECRET_KEY` is configured, where it used to
+attach `None` and report `"auth"` attached. Nothing can have depended on the
+old result, but a call that returned now raises, which is why this is a minor
+rather than a patch.
+
 ### Fixed
 
 - **`attach_auth()` and `attach_events()` reported success and attached
@@ -54,6 +69,32 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   package was absent. The rule is stated once and
   `test_a_holder_bridge_is_never_recorded_holding_nothing` reads the set, so a
   third holder bridge added later has to answer it too.
+
+- **`nodus-sdk[http]` never worked.** `HttpBridge.client()` imported
+  `NodusHttpClient`; the published `nodus-http` exports **`HttpClient`**. So
+  `pip install nodus-sdk[http]` followed by `HttpBridge().client()` raised
+  `ImportError: cannot import name 'NodusHttpClient'` — while the bridge's own
+  not-installed message advises `pip install nodus-sdk[http]`, which cannot
+  help someone who already has it.
+
+  `NodusHttpClient` belongs to the **incubator scaffold** at
+  `packages/nodus-http/` in the nodus-lang checkout, which a development
+  environment resolves `nodus_http` to. So the bridge had never run against the
+  package a user installs, and `test_http_bridge_client_when_available`
+  asserted `client is not None` — true of the scaffold's client, which shares
+  no API with the real one (`request()` versus `get`/`post`/`put`/`delete`, and
+  a constructor taking transports rather than `base_url`/`timeout`).
+
+  Found by the clean-venv release validation for this version, not by the
+  suite. The test now skips with the scaffold's resolved path in the message
+  when it cannot check, rather than passing against the wrong package, and
+  asserts `isinstance(client, nodus_http.HttpClient)` when it can.
+
+- **`HttpBridge`'s `timeout` and `retry_config` were accepted, stored, and
+  dropped.** `HttpBridge(timeout=5)` built a client on nodus-http's 30-second
+  default, and `retry_config` reached nothing at all. Both are passed now
+  (`retry=` is the published client's name for the latter), asserted by reading
+  what arrives at the constructor.
 
 - **`create_runtime(events=EventBusConfig(...))` stored the config as the
   bus.** README has documented that call since 0.1.0; `rt.event_bus` came back

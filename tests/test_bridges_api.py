@@ -7,7 +7,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from nodus_sdk import create_runtime, NodusSDKRuntime
+from nodus_sdk import create_runtime
 from nodus_sdk.bridges.api import NodusTraceMiddleware, create_nodus_router
 
 

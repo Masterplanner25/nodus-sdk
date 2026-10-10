@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
-from unittest.mock import MagicMock, patch
+import pathlib
+from unittest.mock import patch
 
 import pytest
 
@@ -16,7 +17,28 @@ from nodus.runtime.embedding import NodusRuntime
 # ---------------------------------------------------------------------------
 
 def test_version_string():
-    assert __version__ == "0.1.3"
+    assert __version__ == "0.2.0"
+
+
+def test_pyproject_and_version_module_agree():
+    """Two files carry this version and nothing compared them.
+
+    `_version.py` is what `nodus_sdk.__version__` reports and `pyproject.toml`
+    is what pip installs as; they are edited by hand, together, at every
+    release. A mismatch publishes a wheel whose metadata disagrees with the
+    package inside it -- and the test above pins only one of the two, so it
+    would stay green.
+    """
+    import re
+
+    text = (pathlib.Path(__file__).resolve().parent.parent
+            / "pyproject.toml").read_text(encoding="utf-8")
+    declared = re.search(r'^version = "([^"]+)"', text, re.MULTILINE)
+    assert declared, "pyproject.toml has no top-level version"
+    assert declared.group(1) == __version__, (
+        f"pyproject.toml says {declared.group(1)}, "
+        f"nodus_sdk.__version__ says {__version__}"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -155,10 +177,20 @@ def test_detect_available_values_are_bools():
         assert isinstance(v, bool)
 
 
-def test_detect_available_retry_true():
-    avail = detect_available()
-    # nodus-retry is a required dep — always available
+def test_nodus_retry_is_a_required_dependency():
+    """Named for what it asserts.
+
+    It was `test_detect_available_retry_true`, called `detect_available()`,
+    threw the result away, and checked `find_spec` instead -- so it tested
+    nothing about `detect_available`. It could not have: that map has no
+    `retry` key, because nodus-retry is a hard dependency rather than an
+    optional one, which is what this actually pins.
+    """
     assert importlib.util.find_spec("nodus_retry") is not None
+    assert "retry" not in detect_available(), (
+        "nodus-retry became optional; this test and detect_available() need to "
+        "agree on which it is"
+    )
 
 
 # ---------------------------------------------------------------------------

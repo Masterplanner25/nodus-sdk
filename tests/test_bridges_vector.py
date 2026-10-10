@@ -54,7 +54,7 @@ def test_vector_bridge_raises_without_sqlalchemy():
 # ---------------------------------------------------------------------------
 
 def test_ensure_table_creates_table():
-    from sqlalchemy import create_engine, text, inspect
+    from sqlalchemy import create_engine
     engine = create_engine("sqlite:///:memory:")
     b = VectorBridge(engine, table="nodus_embs", dimensions=4)
     # Modify CREATE to work with SQLite (no native vector type)

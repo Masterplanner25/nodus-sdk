@@ -6,7 +6,11 @@ Single-package installation story for the Nodus ecosystem. Auto-wires
 available packages via `create_runtime(**kwargs)`, provides 9 bridge modules
 for external integrations, and exposes a FastAPI control-plane router.
 
-> **Status:** v0.1.0 — published on [PyPI](https://pypi.org/project/nodus-sdk/).
+> **Status:** v0.2.0 — published on [PyPI](https://pypi.org/project/nodus-sdk/).
+>
+> `create_runtime(auth=True)` now requires a configured `SECRET_KEY` and
+> raises without one — it used to attach nothing and report success. See
+> [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -107,7 +111,7 @@ All `attach_*` methods are idempotent and return `self`.
 | Bridge | Install extra | Key class |
 |---|---|---|
 | `bridges/redis.py` | `[redis]` | `RedisBridge(url)` → queue_backend, event_bus |
-| `bridges/http.py` | `[http]` | `HttpBridge()` → NodusHttpClient |
+| `bridges/http.py` | `[http]` | `HttpBridge()` → `nodus_http.HttpClient` |
 | `bridges/llm.py` | `[llm]` | `LLMBridge(credentials)` → FailoverClient |
 | `bridges/observability.py` | `[observability]` | `init_observability(name, otel=, prometheus=)` |
 | `bridges/sql.py` | `[sql]` | `SqlBridge(url)` → sql_query/sql_execute host fns |

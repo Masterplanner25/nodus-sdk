@@ -6,7 +6,6 @@ import hashlib
 import hmac
 import importlib.util
 import json
-import time
 from typing import TYPE_CHECKING, Any
 
 _HTTPX_AVAILABLE = importlib.util.find_spec("httpx") is not None
